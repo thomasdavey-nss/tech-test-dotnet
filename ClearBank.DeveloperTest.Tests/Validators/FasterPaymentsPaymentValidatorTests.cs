@@ -4,9 +4,9 @@ using Xunit;
 
 namespace ClearBank.DeveloperTest.Tests.Validators;
 
-public class FasterPaymentsValidatorTests
+public class FasterPaymentsPaymentValidatorTests
 {
-    private readonly FasterPaymentsValidator _sut = new();
+    private readonly FasterPaymentsPaymentValidator _sut = new();
 
     [Fact]
     public void IsValid_WhenAccountHasFasterPaymentsSchemeAndSufficientBalance_ReturnsTrue()

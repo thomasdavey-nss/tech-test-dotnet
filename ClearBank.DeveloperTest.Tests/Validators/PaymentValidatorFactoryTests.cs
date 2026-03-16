@@ -22,7 +22,7 @@ public class PaymentValidatorFactoryTests
     {
         var validator = _sut.GetValidator(PaymentScheme.FasterPayments);
 
-        Assert.IsType<FasterPaymentsValidator>(validator);
+        Assert.IsType<FasterPaymentsPaymentValidator>(validator);
     }
 
     [Fact]
