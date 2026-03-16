@@ -1,77 +1,35 @@
 ﻿using ClearBank.DeveloperTest.Data;
 using ClearBank.DeveloperTest.Types;
+using ClearBank.DeveloperTest.Validators;
 
 namespace ClearBank.DeveloperTest.Services
 {
     public class PaymentService : IPaymentService
     {
         private readonly IDataStore _dataStore;
+        private readonly IPaymentValidatorFactory _paymentValidatorFactory;
 
-        public PaymentService(IDataStore dataStore)
+        public PaymentService(IDataStore dataStore, IPaymentValidatorFactory paymentValidatorFactory)
         {
             _dataStore = dataStore;
+            _paymentValidatorFactory = paymentValidatorFactory;
         }
         
         public MakePaymentResult MakePayment(MakePaymentRequest request)
         {
             var account = _dataStore.GetAccount(request.DebtorAccountNumber);
-
-            var result = new MakePaymentResult();
-
-            result.Success = true;
             
-            switch (request.PaymentScheme)
-            {
-                case PaymentScheme.Bacs:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Bacs))
-                    {
-                        result.Success = false;
-                    }
-                    break;
+            if (account == null) 
+                return MakePaymentResult.Failed();
+            
+            var validator = _paymentValidatorFactory.GetValidator(request.PaymentScheme);
+            if (!validator.IsValid(account, request.Amount)) 
+                return MakePaymentResult.Failed();
+            
+            account.Balance -= request.Amount;
+            _dataStore.UpdateAccount(account);
 
-                case PaymentScheme.FasterPayments:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.FasterPayments))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Balance < request.Amount)
-                    {
-                        result.Success = false;
-                    }
-                    break;
-
-                case PaymentScheme.Chaps:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Chaps))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Status != AccountStatus.Live)
-                    {
-                        result.Success = false;
-                    }
-                    break;
-            }
-
-            if (result.Success)
-            {
-                account.Balance -= request.Amount;
-
-                _dataStore.UpdateAccount(account);
-            }
-
-            return result;
+            return MakePaymentResult.Succeeded();
         }
     }
 }
